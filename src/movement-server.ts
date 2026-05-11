@@ -96,7 +96,7 @@ if (isReplit) {
 // ============================================
 const io = new Server(server, {
   cors: {
-    origin: ["https://pioneer-portal-v3.vercel.app", "http://localhost:5000"],
+    origin: ["https://campus3d-theta.vercel.app/", "http://localhost:5000"],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -169,7 +169,7 @@ function verifyAdminToken(req: any, res: any, next: any) {
 
 app.get('/', (req, res) => {
   console.log("🔔 Seseorang mengetok pintu server (Route / diakses)");
-  res.send("🚀 PIONEER PORTAL V3 MOVEMENT SERVER IS LIVE!");
+  res.send("🚀 CAMPUS3D PORTAL V3 MOVEMENT SERVER IS LIVE!");
 });
 
 app.get('/admin', (req, res) => {
@@ -610,7 +610,7 @@ server.listen({
   host: '0.0.0.0'
 }, () => {
   console.log("--------------------------------------------------");
-  console.log("🚀 PIONEER PORTAL V3 MOVEMENT SERVER ONLINE");
+  console.log("🚀 CAMPUS3D PORTAL V3 MOVEMENT SERVER ONLINE");
   console.log(`📡 Port: ${MOVEMENT_PORT}`);
   console.log(`🌍 Mode: ${isReplit ? 'REPLIT CLOUD' : 'LOCAL'}`);
   console.log(`👥 Max Students: ${MAX_STUDENTS}`);
