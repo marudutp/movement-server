@@ -65,7 +65,7 @@ const upload = multer({ storage });
 // }));
 
 const allowedOrigins = [
-  "https://campus3d-theta.vercel.app",
+  "https://campus3d-delta.vercel.app",
   "http://localhost:5173",
   "http://localhost:5000"
 ];
