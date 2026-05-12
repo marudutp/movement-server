@@ -58,10 +58,37 @@ const upload = multer({ storage });
 // ============================================
 // MIDDLEWARE
 // ============================================
+
+// app.use(cors({
+//   origin: "*",
+//   credentials: true
+// }));
+
+const allowedOrigins = [
+  "https://campus3d-theta.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5000"
+];
+
 app.use(cors({
-  origin: "*",
+  origin: (origin, callback) => {
+
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("❌ BLOCKED HTTP ORIGIN:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+
+  },
+
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/presentations', express.static(path.join(__dirname, 'public/presentations')));
@@ -94,12 +121,39 @@ if (isReplit) {
 // ============================================
 // SOCKET.IO SETUP (MOVEMENT SERVER)
 // ============================================
+// const io = new Server(server, {
+//   cors: {
+//     origin: ["https://campus3d-theta.vercel.app/","https://*.vercel.app", "http://localhost:5000"],
+//     methods: ["GET", "POST"],
+//     credentials: true
+//   },
+//   transports: ['polling', 'websocket'],
+//   pingTimeout: 60000,
+//   pingInterval: 25000
+// });
+
+
 const io = new Server(server, {
   cors: {
-    origin: ["https://campus3d-theta.vercel.app/", "http://localhost:5000"],
+    origin: (origin, callback) => {
+
+      // izinkan non-browser tools
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("❌ BLOCKED SOCKET ORIGIN:", origin);
+        callback(new Error("Origin not allowed"));
+      }
+
+    },
     methods: ["GET", "POST"],
     credentials: true
   },
+
   transports: ['polling', 'websocket'],
   pingTimeout: 60000,
   pingInterval: 25000
