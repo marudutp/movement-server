@@ -670,16 +670,62 @@ io.on('connection', (socket: any) => {
     }
   });
 
-  // ============================================
-  // TEST PACKET
-  // ============================================
-  socket.on('admin_test_packet', (data: any) => {
-    socket.emit('admin_test_response', { echo: data, timestamp: Date.now() });
-  });
+   // ============================================
+   // SHOWCASE - LOAD & REMOVE
+   // ============================================
+   socket.on('showcase-load', (data: any) => {
+     const uid = socketUidMap.get(socket.id);
+     const player = uid ? activeUsers.get(uid) : null;
 
-  // ============================================
-  // DISCONNECT
-  // ============================================
+     if (player && player.role === ROLES.TEACHER) {
+       console.log(`🎪 Teacher ${player.displayName} loading showcase: ${data.filename}`);
+       
+       // Broadcast ke semua students
+       socket.broadcast.emit('showcase-load', {
+         filename: data.filename,
+         userId: uid,
+         displayName: player.displayName
+       });
+       
+       console.log(`✅ Showcase broadcast sent to all students`);
+     } else {
+       console.log(`⚠️ Non-teacher tried to load showcase: ${uid}`);
+       socket.emit('error_message', {
+         title: "Akses Ditolak",
+         message: "Hanya Guru yang bisa load showcase."
+       });
+     }
+   });
+
+   socket.on('showcase-remove', (data: any) => {
+     const uid = socketUidMap.get(socket.id);
+     const player = uid ? activeUsers.get(uid) : null;
+
+     if (player && player.role === ROLES.TEACHER) {
+       console.log(`🎪 Teacher ${player.displayName} removing showcase`);
+       
+       // Broadcast ke semua students
+       socket.broadcast.emit('showcase-remove', {
+         userId: uid,
+         displayName: player.displayName
+       });
+       
+       console.log(`✅ Showcase remove broadcast sent to all students`);
+     } else {
+       console.log(`⚠️ Non-teacher tried to remove showcase: ${uid}`);
+     }
+   });
+
+   // ============================================
+   // TEST PACKET
+   // ============================================
+   socket.on('admin_test_packet', (data: any) => {
+     socket.emit('admin_test_response', { echo: data, timestamp: Date.now() });
+   });
+
+   // ============================================
+   // DISCONNECT
+   // ============================================
   socket.on('disconnect', () => {
     const uid = socketUidMap.get(socket.id);
 
