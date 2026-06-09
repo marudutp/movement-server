@@ -670,51 +670,103 @@ io.on('connection', (socket: any) => {
     }
   });
 
-   // ============================================
-   // SHOWCASE - LOAD & REMOVE
-   // ============================================
-   socket.on('showcase-load', (data: any) => {
-     const uid = socketUidMap.get(socket.id);
-     const player = uid ? activeUsers.get(uid) : null;
+    // ============================================
+    // SHOWCASE - LOAD & REMOVE (TREATED AS ENTITY)
+    // ============================================
+    socket.on('showcase-load', (data: any) => {
+      const uid = socketUidMap.get(socket.id);
+      const player = uid ? activeUsers.get(uid) : null;
 
-     if (player && player.role === ROLES.TEACHER) {
-       console.log(`🎪 Teacher ${player.displayName} loading showcase: ${data.filename}`);
-       
-       // Broadcast ke semua students
-       socket.broadcast.emit('showcase-load', {
-         filename: data.filename,
-         userId: uid,
-         displayName: player.displayName
-       });
-       
-       console.log(`✅ Showcase broadcast sent to all students`);
-     } else {
-       console.log(`⚠️ Non-teacher tried to load showcase: ${uid}`);
-       socket.emit('error_message', {
-         title: "Akses Ditolak",
-         message: "Hanya Guru yang bisa load showcase."
-       });
-     }
-   });
+      if (player && player.role === ROLES.TEACHER) {
+        console.log(`🎪 Teacher ${player.displayName} loading showcase: ${data.filename}`);
+        
+        // 🔥 TREAT SHOWCASE LIKE A USER JOINING - CREATE UNIQUE ID
+        const showcaseUid = `showcase_${data.filename.split('.')[0]}_${Date.now()}`;
+        
+        // Add showcase to activeUsers like it's a real entity
+        const showcaseData: PlayerData = {
+          uid: showcaseUid,
+          socketId: socket.id, // Linked to teacher's socket
+          displayName: `🎪 ${data.filename}`,
+          role: "showcase",
+          model: "showcase",
+          x: 0, y: 0, z: 0,
+          rotation: 0,
+          lastUpdate: Date.now(),
+          lastHeartbeat: Date.now()
+        };
+        
+        activeUsers.set(showcaseUid, showcaseData);
+        socketUidMap.set(`showcase_${socket.id}`, showcaseUid);
+        
+        console.log(`✅ Showcase added to activeUsers: ${showcaseUid}`);
+        console.log(`📊 Total entities in class: ${activeUsers.size}`);
+        
+        // 🔥 BROADCAST LIKE USER_JOINED - SO EVERYONE SEES SHOWCASE
+        io.emit('user-joined', {
+          uid: showcaseUid,
+          displayName: `🎪 ${data.filename}`,
+          role: "showcase",
+          x: 0,
+          z: 0,
+          ry: 0
+        });
+        
+        // Also send the showcase details
+        socket.broadcast.emit('showcase-load', {
+          filename: data.filename,
+          showcaseUid: showcaseUid,
+          userId: uid,
+          displayName: player.displayName
+        });
+        
+        console.log(`✅ Showcase broadcast sent to all students`);
+      } else {
+        console.log(`⚠️ Non-teacher tried to load showcase: ${uid}`);
+        socket.emit('error_message', {
+          title: "Akses Ditolak",
+          message: "Hanya Guru yang bisa load showcase."
+        });
+      }
+    });
 
-   socket.on('showcase-remove', (data: any) => {
-     const uid = socketUidMap.get(socket.id);
-     const player = uid ? activeUsers.get(uid) : null;
+    socket.on('showcase-remove', (data: any) => {
+      const uid = socketUidMap.get(socket.id);
+      const player = uid ? activeUsers.get(uid) : null;
 
-     if (player && player.role === ROLES.TEACHER) {
-       console.log(`🎪 Teacher ${player.displayName} removing showcase`);
-       
-       // Broadcast ke semua students
-       socket.broadcast.emit('showcase-remove', {
-         userId: uid,
-         displayName: player.displayName
-       });
-       
-       console.log(`✅ Showcase remove broadcast sent to all students`);
-     } else {
-       console.log(`⚠️ Non-teacher tried to remove showcase: ${uid}`);
-     }
-   });
+      if (player && player.role === ROLES.TEACHER) {
+        console.log(`🎪 Teacher ${player.displayName} removing showcase`);
+        
+        // 🔥 FIND & REMOVE SHOWCASE FROM activeUsers
+        let showcaseUid: string | null = null;
+        activeUsers.forEach((entity, entityId) => {
+          if (entity.role === "showcase" && entity.socketId === socket.id) {
+            showcaseUid = entityId;
+          }
+        });
+        
+        if (showcaseUid) {
+          activeUsers.delete(showcaseUid);
+          socketUidMap.delete(`showcase_${socket.id}`);
+          
+          // 🔥 BROADCAST USER_LEFT EVENT - SO EVERYONE KNOWS SHOWCASE LEFT
+          io.emit(NETWORK_EVENTS.USER_LEFT, showcaseUid);
+          
+          console.log(`✅ Showcase removed from activeUsers: ${showcaseUid}`);
+          console.log(`📊 Total entities in class: ${activeUsers.size}`);
+        }
+        
+        // Also send the remove notification
+        socket.broadcast.emit('showcase-remove', {
+          userId: uid,
+          displayName: player.displayName
+        });
+        
+        console.log(`✅ Showcase remove broadcast sent to all students`);
+      } else {
+        console.log(`⚠️ Non-teacher tried to remove showcase: ${uid}`);
+      }
+    });
 
    // ============================================
    // TEST PACKET
